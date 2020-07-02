@@ -17,17 +17,14 @@ public class App {
 //        获取所有的菜品,优惠活动
         List<Item> items = itemRepository.findAll();
         List<SalesPromotion> salesPromotions = salesPromotionRepository.findAll();
+//        结果
+        String result = "============= Order details =============\n";
 //        未优惠的总价格
         double totalPrice = 0;
-//        满30-6的总价格
-        double over30TotalPrice = 0;
-//        含有半价菜品的总价格
-        double halfTotalPrice = 0;
-//        是否满30
-        boolean isOver30 = false;
-//        是否半价
-        boolean isHalf = false;
-//        添加已经选中的菜品对象
+//        省的钱
+        int savingMoney = 0;
+//        半价省的钱
+        int halfSavingMoney = 0;
         List<Item> myItems = new ArrayList<>();
 //        记录各菜品所选的数量
         Map<String,Integer> amountMap = new HashMap<>();
@@ -49,19 +46,20 @@ public class App {
             myItems.add(item);//作为输出结果进行遍历
 
             totalPrice += item.getPrice() * amount;//总价格
-//            计算含有半价菜品的总价格
-            halfTotalPrice += item.getPrice() * amount;
-//            该菜品为可半价优惠的菜品,则重新计算价格
+//            该菜品为可半价优惠的菜品,则计算优惠价格
             if (halfItems.contains(itemId)){
-                isHalf = true;
-                halfTotalPrice = halfTotalPrice - item.getPrice() * amount/2;
+                halfSavingMoney += item.getPrice() * amount/2;
                 userHalfItems.add(item.getName());
             }
         }
+//        优惠信息
+        String promotionInfo = "";
 //        计算满30优惠
         if (totalPrice >= 30){
-            isOver30 = true;
-            over30TotalPrice = totalPrice - 6;
+            savingMoney = 6;
+            promotionInfo = "Promotion used:\n" +
+                        "满30减6 yuan，saving 6 yuan\n" +
+                        "-----------------------------------\n";
         }
 
 //        返回结果
@@ -72,69 +70,21 @@ public class App {
             double singleItemTotal = myItem.getPrice() * itemAmount;
             itemNameAndAmountAndPrice += name + " x "+ itemAmount + " = " + (int)singleItemTotal + " yuan\n";
         }
+        result += itemNameAndAmountAndPrice;
+
 //        客户选择的半价商品
         String halfStr = userHalfItems.toString().substring(1,userHalfItems.toString().length()-1).replaceAll(", ","，");
-//        满足两个优惠
-        if (isHalf && isOver30){//满足两个优惠活动，比较哪个更优惠
-            if (over30TotalPrice < halfTotalPrice){ //满30的优惠过半价的
-                return "============= Order details =============\n" +
-                        itemNameAndAmountAndPrice +
-                        "-----------------------------------\n" +
-                        "Promotion used:\n" +
-                        "满30减6 yuan，saving 6 yuan\n" +
-                        "-----------------------------------\n" +
-                        "Total：" + (int)over30TotalPrice + " yuan\n" +
-                        "===================================";
-            }else if (over30TotalPrice > halfTotalPrice){//半价优惠过满30
-                return "============= Order details =============\n" +
-                        itemNameAndAmountAndPrice +
-                        "-----------------------------------\n" +
-                        "Promotion used:\n" +
-                        "Half price for certain dishes (" + halfStr + ")，saving " + (int)(totalPrice-halfTotalPrice) + " yuan\n" +
-                        "-----------------------------------\n" +
-                        "Total：" + (int)halfTotalPrice + " yuan\n" +
-                        "===================================";
-            }else{//价格相同，选择第一个优惠活动
-                return "============= Order details =============\n" +
-                        itemNameAndAmountAndPrice +
-                        "-----------------------------------\n" +
-                        "Promotion used:\n" +
-                        "满30减6 yuan，saving 6 yuan\n" +
-                        "-----------------------------------\n" +
-                        "Total：" + (int)over30TotalPrice + " yuan\n" +
-                        "===================================";
-            }
+        result += "-----------------------------------\n";
+        //        判断两个优惠
+        if (savingMoney < halfSavingMoney){ //半价优惠过满30
+            savingMoney = halfSavingMoney;
+            promotionInfo = "Promotion used:\n" +
+                    "Half price for certain dishes (" + halfStr + ")，saving " + savingMoney + " yuan\n" +
+                    "-----------------------------------\n";
         }
-
-//        只满足半价优惠
-        if (isHalf){
-            return "============= Order details =============\n" +
-                    itemNameAndAmountAndPrice +
-                    "-----------------------------------\n" +
-                    "Promotion used:\n" +
-                    "Half price for certain dishes (" + halfStr + ")，saving + " +(int)(totalPrice-halfTotalPrice) + " yuan\n" +
-                    "-----------------------------------\n" +
-                    "Total：" + (int)halfTotalPrice + " yuan\n" +
-                    "===================================";
-        }
-
-//        只满足30-6优惠
-        if (isOver30){
-            return "============= Order details =============\n" +
-                    itemNameAndAmountAndPrice +
-                    "-----------------------------------\n" +
-                    "Promotion used:\n" +
-                    "满30减6 yuan，saving 6 yuan\n" +
-                    "-----------------------------------\n" +
-                    "Total：" + (int)over30TotalPrice + " yuan\n" +
-                    "===================================";
-        }
-
-//        无优惠
-        return "============= Order details =============\n" +
-                itemNameAndAmountAndPrice +
-                "-----------------------------------\n" +
-                "Total：" + (int)totalPrice + " yuan\n" +
-                "===================================";
+        result += promotionInfo;
+        result += "Total：" + (int)(totalPrice-savingMoney) + " yuan\n" +
+                  "===================================";
+        return result;
     }
 }
